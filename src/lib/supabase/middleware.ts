@@ -33,16 +33,17 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Rutas protegidas: redirigir a login si no esta autenticado
-  const protectedPaths = ["/libro", "/perfil", "/admin"];
-  const isProtected = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
+  // Rutas publicas (no requieren auth)
+  const publicPaths = ["/login", "/registro"];
+  const isPublic = publicPaths.some((path) => request.nextUrl.pathname === path);
 
-  if (isProtected && !user) {
+  // Todo lo demas requiere auth — redirigir a login si no esta autenticado
+  if (!isPublic && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", request.nextUrl.pathname);
+    if (request.nextUrl.pathname !== "/") {
+      url.searchParams.set("redirect", request.nextUrl.pathname);
+    }
     return NextResponse.redirect(url);
   }
 
@@ -61,15 +62,10 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Redirigir a biblioteca si ya esta autenticado y visita login/registro
-  const authPaths = ["/login", "/registro"];
-  const isAuthPage = authPaths.some(
-    (path) => request.nextUrl.pathname === path
-  );
-
-  if (isAuthPage && user) {
+  // Redirigir a inicio si ya esta autenticado y visita login/registro
+  if (isPublic && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/biblioteca";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
