@@ -18,6 +18,7 @@ export function Navbar() {
   const router = useRouter();
 
   const isAdmin = pathname.startsWith("/admin");
+  const isAuth = pathname === "/login" || pathname === "/registro";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -44,7 +45,7 @@ export function Navbar() {
     router.refresh();
   }
 
-  if (isAdmin) return null;
+  if (isAdmin || isAuth) return null;
 
   return (
     <nav
