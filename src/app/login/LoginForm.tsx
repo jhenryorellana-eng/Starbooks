@@ -23,7 +23,7 @@ export function LoginForm() {
 
     try {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -35,6 +35,21 @@ export function LoginForm() {
             : authError.message
         );
         return;
+      }
+
+      // Check if user is admin → redirect to admin panel
+      if (authData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", authData.user.id)
+          .single();
+
+        if (profile?.is_admin) {
+          router.push("/admin");
+          router.refresh();
+          return;
+        }
       }
 
       router.push(redirect);
