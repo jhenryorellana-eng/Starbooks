@@ -33,18 +33,25 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Rutas publicas (no requieren auth)
-  const publicPaths = ["/login", "/registro"];
-  const isPublic = publicPaths.some((path) => request.nextUrl.pathname === path);
+  const hubUrl = process.env.NEXT_PUBLIC_HUB_URL || "https://app.starbizacademy.com";
 
-  // Todo lo demas requiere auth — redirigir a login si no esta autenticado
+  // Rutas publicas (no requieren auth)
+  const publicPaths = ["/login", "/auth/hub-callback", "/auth/confirm", "/api/auth/hub-exchange"];
+  const isPublic = publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));
+
+  // Redirect /registro to Hub Central (login stays for admin access)
+  if (request.nextUrl.pathname === "/registro") {
+    return NextResponse.redirect(new URL("/enrollment", hubUrl));
+  }
+
+  // Si ya esta autenticado y visita /login, redirigir a biblioteca
+  if (request.nextUrl.pathname === "/login" && user) {
+    return NextResponse.redirect(new URL("/biblioteca", request.url));
+  }
+
+  // Todo lo demas requiere auth — redirigir a Hub si no esta autenticado
   if (!isPublic && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    if (request.nextUrl.pathname !== "/") {
-      url.searchParams.set("redirect", request.nextUrl.pathname);
-    }
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL("/enrollment", hubUrl));
   }
 
   // Proteger admin: verificar is_admin
@@ -56,17 +63,8 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/biblioteca";
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(new URL("/biblioteca", request.url));
     }
-  }
-
-  // Redirigir a inicio si ya esta autenticado y visita login/registro
-  if (isPublic && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

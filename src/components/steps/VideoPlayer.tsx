@@ -27,7 +27,30 @@ export function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
     );
   }
 
-  // Placeholder para URLs mock
+  // Direct video URL (MP4, Supabase Storage, etc.)
+  const isDirectVideo = videoUrl && !videoUrl.includes('placeholder') && (
+    videoUrl.endsWith('.mp4') ||
+    videoUrl.endsWith('.webm') ||
+    videoUrl.endsWith('.ogg') ||
+    videoUrl.includes('supabase.co/storage')
+  );
+
+  if (isDirectVideo) {
+    return (
+      <div className="aspect-video w-full rounded-xl overflow-hidden border border-border-subtle bg-black">
+        <video
+          src={videoUrl}
+          title={title}
+          controls
+          playsInline
+          preload="metadata"
+          className="w-full h-full"
+        />
+      </div>
+    );
+  }
+
+  // Placeholder for mock/empty URLs
   return (
     <div className="aspect-video w-full rounded-xl overflow-hidden border border-border-subtle bg-white/[0.03] flex items-center justify-center">
       <div className="text-center space-y-3">
@@ -37,7 +60,7 @@ export function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
         <div>
           <p className="text-sm text-text-secondary font-medium">{title}</p>
           <p className="text-xs text-text-muted mt-1">
-            Video no disponible (placeholder)
+            Video no disponible
           </p>
         </div>
       </div>

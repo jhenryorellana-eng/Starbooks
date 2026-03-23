@@ -19,6 +19,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import type { Book, Step1AuthorAudio, Step2Summary, Step3MindMap, Step4Chapter, Step5Podcast, Step7Exam, Step7Question } from "@/types";
+import { VideoUpload } from "@/components/admin/VideoUpload";
 
 interface Props {
   book: Book;
@@ -532,7 +533,7 @@ function Step4Editor({ bookId, chapters: initial }: { bookId: string; chapters: 
               <div><label className={labelClass}>Subtitulo</label><input value={ch.subtitle ?? ""} onChange={(e) => updateChapter(i, "subtitle", e.target.value)} className={inputClass} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className={labelClass}>URL del video</label><input value={ch.video_url} onChange={(e) => updateChapter(i, "video_url", e.target.value)} className={inputClass} /></div>
+              <div><label className={labelClass}>Video</label><VideoUpload value={ch.video_url} onChange={(url) => updateChapter(i, "video_url", url)} folder={`chapters/${bookId}`} /></div>
               <div><label className={labelClass}>Tipo de inteligencia</label><input value={ch.intelligence_type ?? ""} onChange={(e) => updateChapter(i, "intelligence_type", e.target.value)} placeholder="financiera, mental..." className={inputClass} /></div>
             </div>
             <div><label className={labelClass}>Contexto para IA</label><textarea value={ch.ai_context ?? ""} onChange={(e) => updateChapter(i, "ai_context", e.target.value)} rows={3} className={`${inputClass} resize-none text-xs`} placeholder="Describe de que trata este capitulo para que el chatbot pueda responder preguntas..." /></div>
@@ -588,7 +589,7 @@ function Step5Editor({ bookId, data }: { bookId: string; data: Step5Podcast | nu
       <div><label className={labelClass}>Titulo</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} /></div>
       <div><label className={labelClass}>Descripcion</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className={`${inputClass} resize-none`} /></div>
       <div className="grid grid-cols-2 gap-4">
-        <div><label className={labelClass}>URL de video</label><input value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} className={inputClass} /></div>
+        <div><label className={labelClass}>Video</label><VideoUpload value={form.video_url} onChange={(url) => setForm({ ...form, video_url: url })} folder={`podcast/${bookId}`} /></div>
         <div><label className={labelClass}>URL de audio (alternativa)</label><input value={form.audio_url} onChange={(e) => setForm({ ...form, audio_url: e.target.value })} className={inputClass} /></div>
       </div>
       <div><label className={labelClass}>Duracion (segundos)</label><input type="number" value={form.duration_seconds} onChange={(e) => setForm({ ...form, duration_seconds: e.target.value })} className={inputClass} /></div>
