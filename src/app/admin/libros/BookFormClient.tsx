@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { slugify } from "@/lib/utils";
+import { FileUpload } from "@/components/admin/FileUpload";
 
 interface Props {
   authors: { id: string; name: string }[];
@@ -133,8 +134,7 @@ export function BookFormClient({ authors, intelligences, initial }: Props) {
       </div>
 
       <div>
-        <label className={labelClass}>URL de portada</label>
-        <input value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="https://..." className={inputClass} />
+        <FileUpload value={form.cover_url} onChange={(url) => setForm({ ...form, cover_url: url })} accept="image/*" bucket="book-covers" folder="covers" label="Portada del libro" />
       </div>
 
       <div className="flex items-center gap-6">
