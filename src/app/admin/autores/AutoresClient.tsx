@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { FileUpload } from "@/components/admin/FileUpload";
 import { Button } from "@/components/ui/Button";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Modal } from "@/components/ui/Modal";
@@ -116,8 +117,7 @@ export function AutoresClient({ authors }: { authors: Author[] }) {
             <input value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-primary/50" />
           </div>
           <div>
-            <label className="text-xs text-text-muted font-medium">URL de foto</label>
-            <input value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-primary/50" />
+            <FileUpload value={form.photo_url} onChange={(url) => setForm({ ...form, photo_url: url })} accept="image/*" bucket="book-covers" folder="authors" label="Foto del autor" />
           </div>
           <div>
             <label className="text-xs text-text-muted font-medium">Biografia</label>
