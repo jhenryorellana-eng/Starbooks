@@ -57,7 +57,7 @@ function HubCallbackContent() {
           }
         }
 
-        router.replace("/biblioteca");
+        router.replace("/");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");

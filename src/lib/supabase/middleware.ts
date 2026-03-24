@@ -44,9 +44,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL("/enrollment", hubUrl));
   }
 
-  // Si ya esta autenticado y visita /login, redirigir a biblioteca
+  // Si ya esta autenticado y visita /login, redirigir a inicio
   if (request.nextUrl.pathname === "/login" && user) {
-    return NextResponse.redirect(new URL("/biblioteca", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // Todo lo demas requiere auth — redirigir a Hub si no esta autenticado
@@ -63,7 +63,7 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.redirect(new URL("/biblioteca", request.url));
+      return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
