@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { STEPS } from "@/lib/constants";
+import type { Book } from "@/types";
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -35,61 +36,6 @@ const scaleIn = {
   visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } },
 };
 
-const STARTER_BOOKS = [
-  {
-    title: "Padre Rico, Padre Pobre",
-    author: "Robert Kiyosaki",
-    duration: "4h 30m",
-    chapters: 9,
-    rating: 4.8,
-    slug: "padre-rico-padre-pobre",
-    color: "#D4AF37",
-    intelligence: "Financiera",
-    emoji: "💰",
-    available: true,
-    description: "Descubre por que los ricos no trabajan por dinero y como puedes construir tu libertad financiera desde joven.",
-  },
-  {
-    title: "Los 7 Habitos de los Adolescentes",
-    author: "Sean Covey",
-    duration: "12h 45m",
-    chapters: 0,
-    rating: 4.8,
-    slug: "7-habitos-adolescentes",
-    color: "#6C63FF",
-    intelligence: "Mental",
-    emoji: "🧠",
-    available: false,
-    description: "Habitos poderosos que transformaran tu vida personal y academica.",
-  },
-  {
-    title: "Las 6 Decisiones mas Importantes",
-    author: "Sean Covey",
-    duration: "8h 30m",
-    chapters: 0,
-    rating: 4.7,
-    slug: "6-decisiones",
-    color: "#10B981",
-    intelligence: "Social",
-    emoji: "🤝",
-    available: false,
-    description: "Las decisiones que definen tu futuro como adolescente.",
-  },
-  {
-    title: "La Jornada Laboral de 4 Horas",
-    author: "Tim Ferriss",
-    duration: "7h 15m",
-    chapters: 0,
-    rating: 4.5,
-    slug: "jornada-4-horas",
-    color: "#F97316",
-    intelligence: "Negocios",
-    emoji: "💼",
-    available: false,
-    description: "Automatiza tu vida y construye un negocio desde cualquier lugar.",
-  },
-];
-
 const STEP_ICONS = [Headphones, BookOpen, Map, Clapperboard, Mic, MessageCircle, Trophy];
 
 const INTELLIGENCES_DATA = [
@@ -102,7 +48,19 @@ const INTELLIGENCES_DATA = [
   { name: "Social", emoji: "🤝", color: "#10B981", bookCount: 4, totalHours: "18h" },
 ];
 
-export function InicioClient() {
+interface Props {
+  featuredBook: Book | null;
+  allBooks: Book[];
+}
+
+export function InicioClient({ featuredBook, allBooks }: Props) {
+  const bookColor = featuredBook?.intelligence?.color || "#7C5CFC";
+  const bookEmoji = featuredBook?.intelligence?.emoji || "📚";
+  const bookSlug = featuredBook?.slug || "#";
+  const upcomingBooks = allBooks.filter(
+    (b) => !b.is_published || (featuredBook && b.id !== featuredBook.id)
+  );
+
   return (
     <div className="min-h-screen pt-16 pb-24 md:pb-12">
       {/* ===== HERO ===== */}
@@ -110,7 +68,6 @@ export function InicioClient() {
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
           <div className="absolute top-1/4 left-0 w-64 sm:w-96 h-64 sm:h-96 bg-accent-primary/10 rounded-full blur-[80px] sm:blur-[120px]" />
           <div className="absolute bottom-1/3 right-0 w-48 sm:w-80 h-48 sm:h-80 bg-[#00B4D8]/8 rounded-full blur-[60px] sm:blur-[100px]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-[#D4AF37]/5 rounded-full blur-[80px]" />
         </div>
 
         <motion.div initial="hidden" animate="visible" variants={stagger} className="relative space-y-6">
@@ -135,15 +92,17 @@ export function InicioClient() {
             Disenado para jovenes emprendedores de 10 a 17 anos.
           </motion.p>
 
-          <motion.div variants={fadeUp} className="pt-4">
-            <Link href="/libro/padre-rico-padre-pobre">
-              <Button size="lg" className="text-base px-8">
-                <BookOpen className="h-5 w-5" />
-                Empezar con Padre Rico, Padre Pobre
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </motion.div>
+          {featuredBook && (
+            <motion.div variants={fadeUp} className="pt-4">
+              <Link href={`/libro/${bookSlug}`}>
+                <Button size="lg" className="text-base px-8">
+                  <BookOpen className="h-5 w-5" />
+                  Empezar con {featuredBook.title}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </motion.div>
+          )}
         </motion.div>
       </section>
 
@@ -187,113 +146,144 @@ export function InicioClient() {
         </motion.div>
       </section>
 
-      {/* ===== LIBRO DISPONIBLE ===== */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto py-16">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={stagger}
-        >
-          <motion.div variants={fadeUp} className="text-center mb-8">
-            <Badge color="#D4AF37" className="mb-3">
-              <BookOpen className="h-3 w-3" />
-              Disponible ahora
-            </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold text-text-primary mt-2">
-              Tu primer libro te espera
-            </h2>
-          </motion.div>
+      {/* ===== LIBRO DISPONIBLE (DINAMICO DESDE BD) ===== */}
+      {featuredBook && (
+        <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto py-16">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="text-center mb-8">
+              <Badge color={bookColor} className="mb-3">
+                <BookOpen className="h-3 w-3" />
+                Disponible ahora
+              </Badge>
+              <h2 className="text-2xl sm:text-3xl font-bold text-text-primary mt-2">
+                Tu primer libro te espera
+              </h2>
+            </motion.div>
 
-          <motion.div variants={fadeUp}>
-            <Link href="/libro/padre-rico-padre-pobre">
-              <div className="relative rounded-2xl border border-[#D4AF37]/30 bg-gradient-to-br from-[#D4AF37]/8 via-transparent to-[#D4AF37]/5 p-6 sm:p-8 hover:border-[#D4AF37]/50 transition-all duration-300 group cursor-pointer">
-                <div className="flex flex-col sm:flex-row gap-6 items-start">
-                  <div className="w-24 h-32 sm:w-32 sm:h-44 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#D4AF37]/5 border border-[#D4AF37]/20 flex items-center justify-center shrink-0">
-                    <BookOpen className="h-10 w-10 text-[#D4AF37]" />
-                  </div>
-                  <div className="flex-1">
-                    <Badge color="#D4AF37" className="mb-2">
-                      💰 Inteligencia Financiera
-                    </Badge>
-                    <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-2 group-hover:text-[#D4AF37] transition-colors">
-                      Padre Rico, Padre Pobre
-                    </h3>
-                    <p className="text-sm text-text-muted mb-1">por Robert Kiyosaki</p>
-                    <p className="text-sm text-text-secondary leading-relaxed mb-4 max-w-lg">
-                      Descubre por que los ricos no trabajan por dinero y como puedes construir tu libertad financiera desde joven.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted mb-4">
-                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 4h 30min</span>
-                      <span className="flex items-center gap-1"><Clapperboard className="h-3.5 w-3.5" /> 9 capitulos</span>
-                      <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 text-[#D4AF37]" fill="currentColor" /> 4.8</span>
-                      <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" /> Chatbot IA</span>
-                    </div>
-                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-accent-primary to-[#00B4D8] text-bg-primary text-sm font-semibold group-hover:brightness-110 transition-all">
-                      Comenzar ahora <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ===== PROXIMAMENTE (LIBROS BLOQUEADOS) ===== */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto py-16">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={stagger}
-        >
-          <motion.div variants={fadeUp} className="text-center mb-8">
-            <Badge color="#5A6178" className="mb-3">
-              <Lock className="h-3 w-3" />
-              Proximamente
-            </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold text-text-primary mt-2">
-              Mas libros en camino
-            </h2>
-            <p className="text-text-secondary text-sm mt-2">
-              Estos libros estaran disponibles muy pronto
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {STARTER_BOOKS.filter((b) => !b.available).map((book) => (
-              <motion.div key={book.title} variants={fadeUp}>
-                <div className="relative rounded-2xl border border-border-subtle p-5 bg-white/[0.02] overflow-hidden">
-                  <div className="absolute inset-0 bg-bg-primary/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center">
-                        <Lock className="h-5 w-5 text-text-muted" />
-                      </div>
-                      <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Proximamente</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
+            <motion.div variants={fadeUp}>
+              <Link href={`/libro/${bookSlug}`}>
+                <div
+                  className="relative rounded-2xl border p-6 sm:p-8 transition-all duration-300 group cursor-pointer"
+                  style={{
+                    borderColor: `${bookColor}30`,
+                    background: `linear-gradient(135deg, ${bookColor}08, transparent, ${bookColor}05)`,
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row gap-6 items-start">
                     <div
-                      className="h-14 w-10 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: `${book.color}15` }}
+                      className="w-24 h-32 sm:w-32 sm:h-44 rounded-xl border flex items-center justify-center shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, ${bookColor}20, ${bookColor}05)`,
+                        borderColor: `${bookColor}20`,
+                      }}
                     >
-                      <BookOpen className="h-5 w-5" style={{ color: book.color }} />
+                      {featuredBook.cover_url ? (
+                        <img src={featuredBook.cover_url} alt={featuredBook.title} className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <BookOpen className="h-10 w-10" style={{ color: bookColor }} />
+                      )}
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${book.color}15`, color: book.color }}>
-                        {book.emoji} {book.intelligence}
-                      </span>
-                      <h3 className="text-sm font-semibold text-text-primary mt-1 line-clamp-2">{book.title}</h3>
-                      <p className="text-xs text-text-muted mt-0.5">{book.author}</p>
+                    <div className="flex-1">
+                      <Badge color={bookColor} className="mb-2">
+                        {bookEmoji} {featuredBook.intelligence?.name || "General"}
+                      </Badge>
+                      <h3
+                        className="text-xl sm:text-2xl font-bold text-text-primary mb-2 transition-colors"
+                        style={{ ["--hover-color" as string]: bookColor }}
+                      >
+                        {featuredBook.title}
+                      </h3>
+                      <p className="text-sm text-text-muted mb-1">
+                        por {featuredBook.author?.name || "Autor"}
+                      </p>
+                      {featuredBook.description && (
+                        <p className="text-sm text-text-secondary leading-relaxed mb-4 max-w-lg">
+                          {featuredBook.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted mb-4">
+                        {featuredBook.estimated_duration && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" /> {featuredBook.estimated_duration}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Clapperboard className="h-3.5 w-3.5" /> {featuredBook.total_chapters} capitulos
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="h-3.5 w-3.5" /> Chatbot IA
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-accent-primary to-[#00B4D8] text-bg-primary text-sm font-semibold group-hover:brightness-110 transition-all">
+                        Comenzar ahora <ArrowRight className="h-4 w-4" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
+              </Link>
+            </motion.div>
+          </motion.div>
+        </section>
+      )}
+
+      {/* ===== PROXIMAMENTE (LIBROS NO PUBLICADOS) ===== */}
+      {upcomingBooks.length > 0 && (
+        <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto py-16">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="text-center mb-8">
+              <Badge color="#5A6178" className="mb-3">
+                <Lock className="h-3 w-3" />
+                Proximamente
+              </Badge>
+              <h2 className="text-2xl sm:text-3xl font-bold text-text-primary mt-2">
+                Mas libros en camino
+              </h2>
+            </motion.div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {upcomingBooks.map((book) => {
+                const color = book.intelligence?.color || "#5A6178";
+                return (
+                  <motion.div key={book.id} variants={fadeUp}>
+                    <div className="relative rounded-2xl border border-border-subtle p-5 bg-white/[0.02] overflow-hidden">
+                      <div className="absolute inset-0 bg-bg-primary/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center">
+                            <Lock className="h-5 w-5 text-text-muted" />
+                          </div>
+                          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Proximamente</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="h-14 w-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
+                          <BookOpen className="h-5 w-5" style={{ color }} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${color}15`, color }}>
+                            {book.intelligence?.emoji} {book.intelligence?.name}
+                          </span>
+                          <h3 className="text-sm font-semibold text-text-primary mt-1 line-clamp-2">{book.title}</h3>
+                          <p className="text-xs text-text-muted mt-0.5">{book.author?.name}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        </section>
+      )}
 
       {/* ===== PLAN DE ESTUDIO (7 INTELIGENCIAS - BLOQUEADAS) ===== */}
       <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto py-16">
@@ -351,15 +341,19 @@ export function InicioClient() {
             Empieza tu viaje ahora
           </h2>
           <p className="text-text-secondary text-sm">
-            Tu primer libro esta listo. 9 capitulos, chatbot con IA, y un certificado al final.
+            {featuredBook
+              ? `${featuredBook.title} te espera. ${featuredBook.total_chapters} capitulos, chatbot con IA, y un certificado al final.`
+              : "Tu primer libro esta listo."}
           </p>
-          <Link href="/libro/padre-rico-padre-pobre">
-            <Button size="lg">
-              <BookOpen className="h-4 w-4" />
-              Comenzar Padre Rico, Padre Pobre
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+          {featuredBook && (
+            <Link href={`/libro/${bookSlug}`}>
+              <Button size="lg">
+                <BookOpen className="h-4 w-4" />
+                Comenzar {featuredBook.title}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
         </motion.div>
       </section>
     </div>
