@@ -103,6 +103,8 @@ export interface Step4Chapter {
   ai_context: string | null;
   key_concepts: string[] | null;
   sort_order: number;
+  module_number: number;
+  module_title: string | null;
 }
 
 export interface Step5Podcast {

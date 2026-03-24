@@ -445,13 +445,25 @@ function Step3Editor({ bookId, data }: { bookId: string; data: Step3MindMap | nu
   );
 }
 
-// ===== PASO 4: CAPITULOS =====
+// ===== PASO 4: CAPITULOS CON MODULOS =====
 function Step4Editor({ bookId, chapters: initial }: { bookId: string; chapters: Step4Chapter[] }) {
   const [chapters, setChapters] = useState(initial.map((c) => ({ ...c, _dirty: false })));
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  function addChapter() {
+  // Derive modules from chapters
+  const modulesObj: Record<number, string> = {};
+  for (const c of chapters) {
+    const num = c.module_number ?? 1;
+    if (!(num in modulesObj)) modulesObj[num] = c.module_title || `Modulo ${num}`;
+  }
+  const modules: [number, string][] = Object.entries(modulesObj)
+    .map(([k, v]) => [Number(k), v] as [number, string])
+    .sort((a, b) => a[0] - b[0]);
+
+  function addModule() {
+    const nextNum = modules.length > 0 ? Math.max(...modules.map(([n]) => n)) + 1 : 1;
+    // Add a placeholder chapter to create the module
     setChapters((prev) => [
       ...prev,
       {
@@ -466,9 +478,39 @@ function Step4Editor({ bookId, chapters: initial }: { bookId: string; chapters: 
         ai_context: "",
         key_concepts: null,
         sort_order: prev.length + 1,
+        module_number: nextNum,
+        module_title: `Modulo ${nextNum}`,
         _dirty: true,
       } as any,
     ]);
+  }
+
+  function addChapterToModule(moduleNumber: number, moduleTitle: string) {
+    setChapters((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}`,
+        book_id: bookId,
+        chapter_number: prev.length + 1,
+        title: "",
+        subtitle: "",
+        video_url: "",
+        video_duration_seconds: null,
+        intelligence_type: "",
+        ai_context: "",
+        key_concepts: null,
+        sort_order: prev.length + 1,
+        module_number: moduleNumber,
+        module_title: moduleTitle,
+        _dirty: true,
+      } as any,
+    ]);
+  }
+
+  function updateModuleTitle(moduleNumber: number, title: string) {
+    setChapters((prev) => prev.map((c) =>
+      (c.module_number ?? 1) === moduleNumber ? { ...c, module_title: title, _dirty: true } : c
+    ));
   }
 
   function updateChapter(index: number, field: string, value: any) {
@@ -482,6 +524,19 @@ function Step4Editor({ bookId, chapters: initial }: { bookId: string; chapters: 
       await supabase.from("step4_chapters").delete().eq("id", ch.id);
     }
     setChapters((prev) => prev.filter((_, i) => i !== index));
+    router.refresh();
+  }
+
+  async function removeModule(moduleNumber: number) {
+    if (!confirm(`Eliminar Modulo ${moduleNumber} y todos sus capitulos?`)) return;
+    const toDelete = chapters.filter((c) => (c.module_number ?? 1) === moduleNumber);
+    const supabase = createClient();
+    for (const ch of toDelete) {
+      if (!ch.id.startsWith("new-")) {
+        await supabase.from("step4_chapters").delete().eq("id", ch.id);
+      }
+    }
+    setChapters((prev) => prev.filter((c) => (c.module_number ?? 1) !== moduleNumber));
     router.refresh();
   }
 
@@ -501,6 +556,8 @@ function Step4Editor({ bookId, chapters: initial }: { bookId: string; chapters: 
         intelligence_type: ch.intelligence_type || null,
         ai_context: ch.ai_context || null,
         sort_order: ch.sort_order,
+        module_number: ch.module_number ?? 1,
+        module_title: ch.module_title || null,
       };
 
       if (ch.id.startsWith("new-")) {
@@ -518,27 +575,60 @@ function Step4Editor({ bookId, chapters: initial }: { bookId: string; chapters: 
     <div className={sectionClass}>
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-text-primary">Paso 4: Capitulos ({chapters.length})</h3>
-        <Button variant="secondary" size="sm" onClick={addChapter}><Plus className="h-3.5 w-3.5" />Agregar</Button>
+        <Button variant="secondary" size="sm" onClick={addModule}><Plus className="h-3.5 w-3.5" />Agregar Modulo</Button>
       </div>
 
-      <div className="space-y-4">
-        {chapters.map((ch, i) => (
-          <div key={ch.id} className="rounded-xl bg-white/[0.02] border border-border-subtle p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-accent-primary font-bold">Capitulo {i + 1}</span>
-              <button onClick={() => removeChapter(i)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+      <div className="space-y-6">
+        {modules.map(([moduleNum, moduleTitle]) => {
+          const moduleChapters = chapters
+            .map((c, originalIndex) => ({ ...c, originalIndex }))
+            .filter((c) => (c.module_number ?? 1) === moduleNum);
+
+          return (
+            <div key={moduleNum} className="rounded-2xl border border-accent-primary/20 bg-accent-primary/[0.02] p-4 space-y-4">
+              {/* Module header */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-accent-primary bg-accent-primary/10 px-2.5 py-1 rounded-lg">M{moduleNum}</span>
+                <input
+                  value={moduleTitle}
+                  onChange={(e) => updateModuleTitle(moduleNum, e.target.value)}
+                  className={`${inputClass} flex-1 font-semibold`}
+                  placeholder="Titulo del modulo"
+                />
+                <Button variant="secondary" size="sm" onClick={() => addChapterToModule(moduleNum, moduleTitle)}>
+                  <Plus className="h-3 w-3" />Cap
+                </Button>
+                <button onClick={() => removeModule(moduleNum)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 cursor-pointer">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {/* Chapters in module */}
+              <div className="space-y-3 pl-2 border-l-2 border-accent-primary/10 ml-3">
+                {moduleChapters.map((ch) => (
+                  <div key={ch.id} className="rounded-xl bg-white/[0.02] border border-border-subtle p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-text-muted font-medium">Cap {ch.chapter_number}</span>
+                      <button onClick={() => removeChapter(ch.originalIndex)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className={labelClass}>Titulo *</label><input value={ch.title} onChange={(e) => updateChapter(ch.originalIndex, "title", e.target.value)} className={inputClass} /></div>
+                      <div><label className={labelClass}>Subtitulo</label><input value={ch.subtitle ?? ""} onChange={(e) => updateChapter(ch.originalIndex, "subtitle", e.target.value)} className={inputClass} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><FileUpload value={ch.video_url} onChange={(url) => updateChapter(ch.originalIndex, "video_url", url)} accept="video/*" bucket="book-videos" folder={`chapters/${bookId}`} label="Video" /></div>
+                      <div><label className={labelClass}>Tipo de inteligencia</label><input value={ch.intelligence_type ?? ""} onChange={(e) => updateChapter(ch.originalIndex, "intelligence_type", e.target.value)} placeholder="financiera, mental..." className={inputClass} /></div>
+                    </div>
+                    <div><label className={labelClass}>Contexto para IA</label><textarea value={ch.ai_context ?? ""} onChange={(e) => updateChapter(ch.originalIndex, "ai_context", e.target.value)} rows={3} className={`${inputClass} resize-none text-xs`} placeholder="Describe de que trata este capitulo para que el chatbot pueda responder preguntas..." /></div>
+                  </div>
+                ))}
+                {moduleChapters.length === 0 && (
+                  <p className="text-xs text-text-muted py-4 text-center">Sin capitulos. Agrega uno con el boton +Cap</p>
+                )}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={labelClass}>Titulo *</label><input value={ch.title} onChange={(e) => updateChapter(i, "title", e.target.value)} className={inputClass} /></div>
-              <div><label className={labelClass}>Subtitulo</label><input value={ch.subtitle ?? ""} onChange={(e) => updateChapter(i, "subtitle", e.target.value)} className={inputClass} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><FileUpload value={ch.video_url} onChange={(url) => updateChapter(i, "video_url", url)} accept="video/*" bucket="book-videos" folder={`chapters/${bookId}`} label="Video" /></div>
-              <div><label className={labelClass}>Tipo de inteligencia</label><input value={ch.intelligence_type ?? ""} onChange={(e) => updateChapter(i, "intelligence_type", e.target.value)} placeholder="financiera, mental..." className={inputClass} /></div>
-            </div>
-            <div><label className={labelClass}>Contexto para IA</label><textarea value={ch.ai_context ?? ""} onChange={(e) => updateChapter(i, "ai_context", e.target.value)} rows={3} className={`${inputClass} resize-none text-xs`} placeholder="Describe de que trata este capitulo para que el chatbot pueda responder preguntas..." /></div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <Button onClick={saveAll} isLoading={loading}><Save className="h-4 w-4" />Guardar todos los capitulos</Button>
